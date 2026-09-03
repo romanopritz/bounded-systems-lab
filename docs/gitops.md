@@ -13,9 +13,21 @@ an explicit set of namespaced resource kinds. The application tracks protected
 `main`, self-heals drift, prunes resources removed from Git, rejects an empty
 render, and stops retrying after three failed sync attempts.
 
+The local cluster registration watches only `bounded-lab`, disables cluster-scoped
+resources, and contains no credential material. For the internal Kubernetes API,
+Argo CD uses the application controller's mounted service-account token, whose
+permissions are defined by the workload namespace `Role`.
+
 Argo CD has no ingress or load balancer. Its namespace quota and default limits
 bound aggregate resource use, while controller and repository worker counts keep
-reconciliation concurrency small for a fixed-capacity host.
+reconciliation concurrency small for a fixed-capacity host. The repository server
+retries failed Git operations up to three times so an isolated upstream timeout
+does not leave application status unknown.
+
+The application controller uses Argo CD's normal RBAC-respect mode. It stops
+watching API kinds that its namespace `Role` cannot list, without the additional
+authorization-review calls made by strict mode. This keeps discovery bounded and
+avoids granting read access to unrelated resources or Secrets.
 
 ## Bootstrap
 

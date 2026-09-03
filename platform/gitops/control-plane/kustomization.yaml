@@ -11,6 +11,8 @@ resources:
   - https://raw.githubusercontent.com/argoproj/argo-cd/e258ee23c3e52266d407572f4bcdfe7d9ed36cb5/manifests/namespace-install.yaml
 patches:
   - path: cmd-params-patch.yaml
+  - path: repo-server-patch.yaml
+  - path: settings-patch.yaml
   - target:
       kind: Deployment
       name: argocd-redis
