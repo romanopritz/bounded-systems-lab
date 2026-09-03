@@ -1,0 +1,28 @@
+write-kubeconfig-mode: "0600"
+protect-kernel-defaults: true
+secrets-encryption: true
+secrets-encryption-provider: secretbox
+
+disable:
+  - traefik
+  - servicelb
+
+kube-apiserver-arg:
+  - "admission-control-config-file=/var/lib/rancher/k3s/server/psa.yaml"
+  - "audit-log-path=/var/lib/rancher/k3s/server/logs/audit.log"
+  - "audit-policy-file=/var/lib/rancher/k3s/server/audit.yaml"
+  - "audit-log-maxage=30"
+  - "audit-log-maxbackup=10"
+  - "audit-log-maxsize=100"
+  - "service-account-extend-token-expiration=false"
+
+kube-controller-manager-arg:
+  - "terminated-pod-gc-threshold=100"
+
+kubelet-arg:
+  - "streaming-connection-idle-timeout=5m"
+  - "pod-max-pids=4096"
+  - "system-reserved=cpu=500m,memory=1Gi"
+  - "kube-reserved=cpu=500m,memory=1Gi"
+  - "eviction-hard=memory.available<1Gi,nodefs.available<10%,imagefs.available<10%"
+  - "eviction-minimum-reclaim=memory.available=512Mi,nodefs.available=5%,imagefs.available=5%"

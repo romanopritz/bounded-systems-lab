@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bounded-systems-lab
+  namespace: bounded-lab
+  labels:
+    app.kubernetes.io/name: bounded-systems-lab
+    app.kubernetes.io/part-of: bounded-systems-lab
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: bounded-systems-lab
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: bounded-systems-lab
+        app.kubernetes.io/part-of: bounded-systems-lab
+    spec:
+      serviceAccountName: bounded-workload
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 15
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: bounded-systems-lab
+      containers:
+        - name: api
+          image: bounded-systems-lab:local
+          imagePullPolicy: Never
+          command:
+            - uvicorn
+          args:
+            - bounded_systems_lab.api:app
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8000"
+            - --no-access-log
+          env:
+            - name: LAB_MAX_CONCURRENCY
+              value: "2"
+            - name: LAB_MAX_QUEUE_SIZE
+              value: "4"
+            - name: LAB_WORK_TIMEOUT_SECONDS
+              value: "2"
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 2
+            failureThreshold: 15
+            timeoutSeconds: 1
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+            failureThreshold: 2
+            timeoutSeconds: 1
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 1
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
