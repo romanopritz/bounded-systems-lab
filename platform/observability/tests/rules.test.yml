@@ -1,0 +1,90 @@
+rule_files:
+  - ../base/config/slo-rules.yml
+  - ../base/config/alerts.yml
+
+evaluation_interval: 1m
+fuzzy_compare: true
+group_eval_order:
+  - bounded-systems-sli
+  - bounded-systems-alerts
+
+tests:
+  - name: healthy service preserves availability
+    interval: 1m
+    input_series:
+      - series: up{job="bounded-systems-lab",instance="10.42.0.10:8000"}
+        values: 1x20
+      - series: up{job="bounded-systems-lab",instance="10.42.0.11:8000"}
+        values: 1x20
+      - series: bounded_work_running{job="bounded-systems-lab",instance="10.42.0.10:8000"}
+        values: 1x20
+      - series: bounded_work_queued{job="bounded-systems-lab",instance="10.42.0.10:8000"}
+        values: 0x20
+      - series: bounded_work_capacity{job="bounded-systems-lab",instance="10.42.0.10:8000"}
+        values: 6x20
+    promql_expr_test:
+      - expr: bounded:sli_availability:ratio_rate5m
+        eval_time: 10m
+        exp_samples:
+          - labels: bounded:sli_availability:ratio_rate5m
+            value: 1
+      - expr: bounded:sli_saturation:ratio
+        eval_time: 10m
+        exp_samples:
+          - labels: bounded:sli_saturation:ratio
+            value: 0.16666666666666666
+      - expr: bounded:sli_error:ratio_rate5m
+        eval_time: 10m
+        exp_samples:
+          - labels: bounded:sli_error:ratio_rate5m
+            value: 0
+      - expr: bounded:sli_rejection:ratio_rate5m
+        eval_time: 10m
+        exp_samples:
+          - labels: bounded:sli_rejection:ratio_rate5m
+            value: 0
+      - expr: bounded:sli_latency_le_1s:ratio_rate5m
+        eval_time: 10m
+        exp_samples:
+          - labels: bounded:sli_latency_le_1s:ratio_rate5m
+            value: 1
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: BoundedLabTargetDown
+        exp_alerts: []
+  - name: unreachable target pages after two minutes
+    interval: 1m
+    input_series:
+      - series: up{job="bounded-systems-lab",instance="10.42.0.10:8000"}
+        values: 0x10
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: BoundedLabTargetDown
+        exp_alerts:
+          - exp_labels:
+              instance: 10.42.0.10:8000
+              job: bounded-systems-lab
+              severity: critical
+            exp_annotations:
+              summary: Bounded lab target is down
+              description: Workload metrics target 10.42.0.10:8000 has been unreachable for two minutes.
+              runbook_url: https://github.com/romanopritz/bounded-systems-lab/blob/main/docs/observability.md#target-down
+  - name: sustained capacity use warns
+    interval: 1m
+    input_series:
+      - series: bounded_work_running{job="bounded-systems-lab",instance="10.42.0.10:8000"}
+        values: 2x20
+      - series: bounded_work_queued{job="bounded-systems-lab",instance="10.42.0.10:8000"}
+        values: 4x20
+      - series: bounded_work_capacity{job="bounded-systems-lab",instance="10.42.0.10:8000"}
+        values: 6x20
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: BoundedLabSustainedSaturation
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Work runner is persistently saturated
+              description: At least 80% of running and queue capacity has been occupied for ten minutes.
+              runbook_url: https://github.com/romanopritz/bounded-systems-lab/blob/main/docs/observability.md#sustained-saturation

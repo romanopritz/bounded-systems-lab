@@ -13,10 +13,11 @@ an explicit set of namespaced resource kinds. The application tracks protected
 `main`, self-heals drift, prunes resources removed from Git, rejects an empty
 render, and stops retrying after three failed sync attempts.
 
-The local cluster registration watches only `bounded-lab`, disables cluster-scoped
-resources, and contains no credential material. For the internal Kubernetes API,
-Argo CD uses the application controller's mounted service-account token, whose
-permissions are defined by the workload namespace `Role`.
+The local cluster registration watches only `bounded-lab` and `observability`,
+disables cluster-scoped resources, and contains no credential material. For the
+internal Kubernetes API, Argo CD uses the application controller's mounted
+service-account token, whose permissions are defined by a separate `Role` in each
+managed namespace.
 
 Argo CD has no ingress or load balancer. Its namespace quota and default limits
 bound aggregate resource use, while controller and repository worker counts keep
@@ -37,6 +38,7 @@ Argo starts managing namespaced resources:
 
 ```bash
 kubectl apply -f platform/kubernetes/base/namespace.yaml
+kubectl apply -f platform/observability/base/namespace.yaml
 kubectl apply --server-side --force-conflicts \
   -k platform/gitops/control-plane
 kubectl wait --for=condition=Available deployment --all \
@@ -57,6 +59,8 @@ kubectl get pods -n argocd
 kubectl get appproject,application -n argocd
 kubectl get application bounded-systems-lab -n argocd \
   -o jsonpath='{.status.sync.status}{" "}{.status.health.status}{"\n"}'
+kubectl get application bounded-observability -n argocd \
+  -o jsonpath='{.status.sync.status}{" "}{.status.health.status}{"\n"}'
 kubectl auth can-i update deployments \
   --as=system:serviceaccount:argocd:argocd-application-controller \
   -n bounded-lab
@@ -66,6 +70,7 @@ kubectl auth can-i update deployments \
 ```
 
 The first authorization check should print `yes`; the second should print `no`.
+The observability `Role` follows the same boundary in its own namespace.
 
 ## Private UI Access
 

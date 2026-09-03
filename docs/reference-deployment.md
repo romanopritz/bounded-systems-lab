@@ -61,6 +61,12 @@ Keep these values outside the public repository:
 
 The reference workload is published to public GHCR, pinned by digest, and tracked
 from the protected `main` branch by a namespace-scoped Argo CD installation. Argo
-CD remains cluster-internal and receives write access only to the workload
-namespace. Add ingress or persistent storage only with a concrete workload, narrow
-firewall rules, and a recovery plan.
+CD remains cluster-internal and receives write access only through separate Roles
+in the workload and observability namespaces. Add ingress or persistent storage
+only with a concrete workload, narrow firewall rules, and a recovery plan.
+
+For stateless edge firewalls, account for the container network's source NAT port
+selection when admitting return traffic. K3s Flannel masquerading uses fully
+randomized source ports, which can fall outside the host's normal ephemeral range;
+keep the ACK-only return rule broad enough for ports 1024-65535 without opening new
+inbound TCP handshakes.

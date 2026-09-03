@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bounded-observability
+  namespace: argocd
+spec:
+  project: bounded-systems-lab
+  destination:
+    namespace: observability
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/romanopritz/bounded-systems-lab.git
+    targetRevision: main
+    path: platform/observability/overlays/gitops
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 1m
+    syncOptions:
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+  revisionHistoryLimit: 5

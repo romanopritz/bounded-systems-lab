@@ -1,0 +1,70 @@
+groups:
+  - name: bounded-systems-sli
+    interval: 30s
+    rules:
+      - record: bounded:sli_requests:rate5m
+        expr: sum(rate(bounded_work_requests_total[5m])) or vector(0)
+      - record: bounded:sli_availability:ratio_rate5m
+        expr: avg(avg_over_time(up{job="bounded-systems-lab"}[5m]))
+      - record: bounded:sli_availability:ratio_rate1h
+        expr: avg(avg_over_time(up{job="bounded-systems-lab"}[1h]))
+      - record: bounded:sli_error:ratio_rate5m
+        expr: |
+          (sum(rate(bounded_work_requests_total{outcome=~"failed|timed_out"}[5m])) or vector(0))
+          /
+          clamp_min((sum(rate(bounded_work_requests_total[5m])) or vector(0)), 1e-9)
+      - record: bounded:sli_error:ratio_rate1h
+        expr: |
+          (sum(rate(bounded_work_requests_total{outcome=~"failed|timed_out"}[1h])) or vector(0))
+          /
+          clamp_min((sum(rate(bounded_work_requests_total[1h])) or vector(0)), 1e-9)
+      - record: bounded:sli_rejection:ratio_rate5m
+        expr: |
+          (sum(rate(bounded_work_requests_total{outcome="rejected"}[5m])) or vector(0))
+          /
+          clamp_min((sum(rate(bounded_work_requests_total[5m])) or vector(0)), 1e-9)
+      - record: bounded:sli_rejection:ratio_rate1h
+        expr: |
+          (sum(rate(bounded_work_requests_total{outcome="rejected"}[1h])) or vector(0))
+          /
+          clamp_min((sum(rate(bounded_work_requests_total[1h])) or vector(0)), 1e-9)
+      - record: bounded:sli_latency_le_1s:ratio_rate5m
+        expr: |
+          1 - (
+            (sum(rate(bounded_work_request_duration_seconds_count{outcome="completed"}[5m])) or vector(0))
+            -
+            (sum(rate(bounded_work_request_duration_seconds_bucket{outcome="completed",le="1.0"}[5m])) or vector(0))
+          )
+          /
+          clamp_min(
+            (sum(rate(bounded_work_request_duration_seconds_count{outcome="completed"}[5m])) or vector(0)),
+            1e-9
+          )
+      - record: bounded:sli_saturation:ratio
+        expr: |
+          max(
+            (bounded_work_running + bounded_work_queued)
+            /
+            bounded_work_capacity
+          )
+      - record: bounded:slo_availability_error_budget_remaining:ratio1h
+        expr: |
+          clamp_max(
+            clamp_min(
+              1 - ((1 - bounded:sli_availability:ratio_rate1h) / (1 - 0.999)),
+              0
+            ),
+            1
+          )
+      - record: bounded:slo_error_budget_remaining:ratio1h
+        expr: |
+          clamp_max(
+            clamp_min(1 - (bounded:sli_error:ratio_rate1h / 0.01), 0),
+            1
+          )
+      - record: bounded:slo_rejection_budget_remaining:ratio1h
+        expr: |
+          clamp_max(
+            clamp_min(1 - (bounded:sli_rejection:ratio_rate1h / 0.01), 0),
+            1
+          )

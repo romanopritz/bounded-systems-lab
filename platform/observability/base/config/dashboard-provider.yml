@@ -1,0 +1,11 @@
+apiVersion: 1
+providers:
+  - name: Bounded Systems
+    orgId: 1
+    folder: Bounded Systems
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards

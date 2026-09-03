@@ -9,6 +9,6 @@ type: Opaque
 stringData:
   name: in-cluster
   server: https://kubernetes.default.svc
-  namespaces: bounded-lab
+  namespaces: bounded-lab,observability
   clusterResources: "false"
   config: "{}"

@@ -28,6 +28,7 @@ The project demonstrates:
 3. Containerized it with pinned dependencies, a digest-pinned base, and runtime limits.
 4. Deployed two restricted replicas to K3s with probes, quotas, and network policies.
 5. Added namespace-scoped Argo CD reconciliation with bounded control-plane resources.
+6. Added bounded Prometheus, Alertmanager, and Grafana resources with tested SLO rules.
 
 ## Current Service
 
@@ -126,9 +127,16 @@ kubectl apply -k platform/kubernetes/overlays/ghcr
 Argo CD configuration is in `platform/gitops`. The control plane is pinned to an
 immutable Argo CD 3.5.2 commit, has a namespace quota and bounded reconciliation
 parallelism, and uses namespace-scoped installation permissions. A dedicated
-`AppProject` and Kubernetes `Role` limit workload reconciliation to `bounded-lab`.
-See [docs/gitops.md](docs/gitops.md) for bootstrap, verification, private UI access,
-and rollback procedures.
+`AppProject` and per-namespace Kubernetes `Role` limit reconciliation to
+`bounded-lab` and `observability`. See [docs/gitops.md](docs/gitops.md) for
+bootstrap, verification, private UI access, and rollback procedures.
+
+The monitoring manifests are in `platform/observability`. They provide explicit
+scrape, retention, storage, query, CPU, and memory budgets; a narrow
+cross-namespace scrape policy; tested SLO recording and alerting rules; and a
+provisioned Grafana dashboard. See
+[docs/observability.md](docs/observability.md) for objectives, capacity
+assumptions, private access, and alert runbooks.
 
 ## License
 
