@@ -47,7 +47,7 @@ jobs:
 
       - name: Build and publish image
         id: push
-        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4 # v6
+        uses: docker/build-push-action@2ca78c6bec76527009825f31aae0532b4d40d820 # v6
         with:
           context: .
           push: true
