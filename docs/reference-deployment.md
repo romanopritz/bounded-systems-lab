@@ -59,6 +59,8 @@ Keep these values outside the public repository:
 - registry credentials
 - provider-specific storage and networking
 
-The next delivery stage is a public GHCR image pinned by digest and an Argo CD
-application tracking the public Git repository. Add ingress or persistent storage
-only with a concrete workload, narrow firewall rules, and a recovery plan.
+The reference workload is published to public GHCR, pinned by digest, and tracked
+from the protected `main` branch by a namespace-scoped Argo CD installation. Argo
+CD remains cluster-internal and receives write access only to the workload
+namespace. Add ingress or persistent storage only with a concrete workload, narrow
+firewall rules, and a recovery plan.

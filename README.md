@@ -27,6 +27,7 @@ The project demonstrates:
 2. Added metrics for latency, saturation, queue depth, rejects, and failures.
 3. Containerized it with pinned dependencies, a digest-pinned base, and runtime limits.
 4. Deployed two restricted replicas to K3s with probes, quotas, and network policies.
+5. Added namespace-scoped Argo CD reconciliation with bounded control-plane resources.
 
 ## Current Service
 
@@ -80,10 +81,11 @@ uv run pytest -q
 
 ## CI And Releases
 
-Pull requests and pushes to `main` run the test suite and build the container
-without publishing it. Publishing a GitHub release builds the image, pushes it to
-`ghcr.io/romanopritz/bounded-systems-lab`, and records a build-provenance
-attestation. Workflow permissions are read-only by default; only the release job
+Pull requests and pushes to `main` run formatting, lint, type, test, manifest,
+container-build, and vulnerability checks without publishing an image. Publishing
+a GitHub release builds the image, pushes it to
+`ghcr.io/romanopritz/bounded-systems-lab`, and records provenance and SBOM
+attestations. Workflow permissions are read-only by default; only the release job
 receives package and attestation write access.
 
 The published image is public. Pull release `v0.1.0` by immutable digest:
@@ -120,6 +122,13 @@ image by digest and changes the pull policy to `IfNotPresent`:
 ```bash
 kubectl apply -k platform/kubernetes/overlays/ghcr
 ```
+
+Argo CD configuration is in `platform/gitops`. The control plane is pinned to an
+immutable Argo CD 3.5.2 commit, has a namespace quota and bounded reconciliation
+parallelism, and uses namespace-scoped installation permissions. A dedicated
+`AppProject` and Kubernetes `Role` limit workload reconciliation to `bounded-lab`.
+See [docs/gitops.md](docs/gitops.md) for bootstrap, verification, private UI access,
+and rollback procedures.
 
 ## License
 

@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: bounded-systems-lab
+  namespace: argocd
+spec:
+  description: Namespace-scoped deployment for the bounded systems workload
+  sourceRepos:
+    - https://github.com/romanopritz/bounded-systems-lab.git
+  destinations:
+    - namespace: bounded-lab
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: LimitRange
+    - group: ""
+      kind: ResourceQuota
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: apps
+      kind: Deployment
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+  orphanedResources:
+    warn: true
