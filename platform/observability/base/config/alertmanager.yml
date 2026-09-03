@@ -1,0 +1,14 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: local-only
+  group_by:
+    - alertname
+    - severity
+  group_wait: 15s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: local-only

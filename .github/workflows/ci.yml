@@ -122,16 +122,40 @@ jobs:
           kubectl kustomize platform/kubernetes/base > "$RUNNER_TEMP/base.yaml"
           kubectl kustomize platform/kubernetes/overlays/ghcr > "$RUNNER_TEMP/ghcr.yaml"
           kubectl kustomize platform/kubernetes/overlays/gitops > "$RUNNER_TEMP/gitops.yaml"
+          kubectl kustomize platform/observability/base > "$RUNNER_TEMP/observability-base.yaml"
+          kubectl kustomize platform/observability/overlays/gitops > "$RUNNER_TEMP/observability-gitops.yaml"
           kubectl kustomize platform/gitops/control-plane > "$RUNNER_TEMP/argocd-control-plane.yaml"
           kubectl kustomize platform/gitops/application > "$RUNNER_TEMP/argocd-application.yaml"
           kubeconform -strict -summary \
             "$RUNNER_TEMP/base.yaml" \
             "$RUNNER_TEMP/ghcr.yaml" \
-            "$RUNNER_TEMP/gitops.yaml"
+            "$RUNNER_TEMP/gitops.yaml" \
+            "$RUNNER_TEMP/observability-base.yaml" \
+            "$RUNNER_TEMP/observability-gitops.yaml"
           kubeconform -strict -skip CustomResourceDefinition -summary \
             "$RUNNER_TEMP/argocd-control-plane.yaml"
           kubeconform -strict -ignore-missing-schemas -summary \
             "$RUNNER_TEMP/argocd-application.yaml"
+
+      - name: Validate monitoring configuration and rules
+        run: |
+          docker run --rm --entrypoint /bin/promtool \
+            --volume "$PWD/platform/observability/base/config:/etc/prometheus:ro" \
+            quay.io/prometheus/prometheus:v3.14.0@sha256:5ce7540c3c00ef4ab0c9d2c995c6a5b9c421f44b4a115d97a2c7af3b1c21cbb0 \
+            check config /etc/prometheus/prometheus.yml
+          docker run --rm --entrypoint /bin/promtool \
+            --volume "$PWD/platform/observability:/work:ro" \
+            --workdir /work/tests \
+            quay.io/prometheus/prometheus:v3.14.0@sha256:5ce7540c3c00ef4ab0c9d2c995c6a5b9c421f44b4a115d97a2c7af3b1c21cbb0 \
+            test rules rules.test.yml
+          docker run --rm --entrypoint /bin/amtool \
+            --volume "$PWD/platform/observability/base/config:/etc/alertmanager:ro" \
+            quay.io/prometheus/alertmanager:v0.34.0@sha256:690c7b525f4367aa91f73e2f91c632206d32e97c6384bdbf2fb7a861b420340d \
+            check-config /etc/alertmanager/alertmanager.yml
+          jq --exit-status \
+            'type == "object" and .uid == "bounded-systems-slos" and (.panels | length > 0)' \
+            platform/observability/base/dashboards/bounded-systems-slo.json \
+            > /dev/null
 
   container:
     runs-on: ubuntu-24.04

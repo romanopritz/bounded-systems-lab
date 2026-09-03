@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - service-accounts.yaml
+  - resource-policy.yaml
+  - network-policy.yaml
+  - deployments.yaml
+  - services.yaml
+configMapGenerator:
+  - name: prometheus-config
+    namespace: observability
+    files:
+      - config/prometheus.yml
+      - config/slo-rules.yml
+      - config/alerts.yml
+  - name: alertmanager-config
+    namespace: observability
+    files:
+      - config/alertmanager.yml
+  - name: grafana-datasources
+    namespace: observability
+    files:
+      - config/datasource.yml
+  - name: grafana-dashboard-providers
+    namespace: observability
+    files:
+      - config/dashboard-provider.yml
+  - name: grafana-dashboards
+    namespace: observability
+    files:
+      - dashboards/bounded-systems-slo.json

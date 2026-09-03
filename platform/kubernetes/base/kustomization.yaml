@@ -7,3 +7,4 @@ resources:
   - network-policy.yaml
   - deployment.yaml
   - service.yaml
+  - metrics-service.yaml

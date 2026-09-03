@@ -1,0 +1,73 @@
+groups:
+  - name: bounded-systems-alerts
+    interval: 30s
+    rules:
+      - alert: BoundedLabMetricsMissing
+        expr: absent(up{job="bounded-systems-lab"})
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Bounded lab metrics targets are missing
+          description: Prometheus has discovered no workload targets for two minutes.
+          runbook_url: https://github.com/romanopritz/bounded-systems-lab/blob/main/docs/observability.md#metrics-missing
+      - alert: BoundedLabTargetDown
+        expr: up{job="bounded-systems-lab"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Bounded lab target is down
+          description: Workload metrics target {{ $labels.instance }} has been unreachable for two minutes.
+          runbook_url: https://github.com/romanopritz/bounded-systems-lab/blob/main/docs/observability.md#target-down
+      - alert: BoundedLabAvailabilityFastBurn
+        expr: (1 - bounded:sli_availability:ratio_rate5m) > (14.4 * (1 - 0.999))
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Availability error budget is burning quickly
+          description: Five-minute unavailability is consuming the 99.9% availability budget at more than 14.4 times the sustainable rate.
+          runbook_url: https://github.com/romanopritz/bounded-systems-lab/blob/main/docs/observability.md#availability-burn
+      - alert: BoundedLabErrorFastBurn
+        expr: |
+          bounded:sli_error:ratio_rate5m > (14.4 * 0.01)
+          and
+          bounded:sli_requests:rate5m > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Work failure error budget is burning quickly
+          description: Failures and timeouts exceed the fast-burn threshold while the service is receiving traffic.
+          runbook_url: https://github.com/romanopritz/bounded-systems-lab/blob/main/docs/observability.md#error-burn
+      - alert: BoundedLabHighRejectionRate
+        expr: |
+          bounded:sli_rejection:ratio_rate5m > 0.05
+          and
+          bounded:sli_requests:rate5m > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Work admission rejection rate is high
+          description: More than 5% of work has been rejected for five minutes; inspect queue saturation before adding load or capacity.
+          runbook_url: https://github.com/romanopritz/bounded-systems-lab/blob/main/docs/observability.md#high-rejection-rate
+      - alert: BoundedLabLatencyBudgetBurn
+        expr: bounded:sli_latency_le_1s:ratio_rate5m < 0.80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Completed work is consuming the latency budget
+          description: Fewer than 80% of completed requests have finished within one second for ten minutes.
+          runbook_url: https://github.com/romanopritz/bounded-systems-lab/blob/main/docs/observability.md#latency-burn
+      - alert: BoundedLabSustainedSaturation
+        expr: bounded:sli_saturation:ratio >= 0.80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Work runner is persistently saturated
+          description: At least 80% of running and queue capacity has been occupied for ten minutes.
+          runbook_url: https://github.com/romanopritz/bounded-systems-lab/blob/main/docs/observability.md#sustained-saturation

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bounded-systems-lab-metrics
+  namespace: bounded-lab
+  labels:
+    app.kubernetes.io/name: bounded-systems-lab
+    app.kubernetes.io/component: metrics
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: bounded-systems-lab
+  ports:
+    - name: metrics
+      port: 8000
+      targetPort: http
+      protocol: TCP
