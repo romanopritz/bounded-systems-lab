@@ -1,4 +1,4 @@
-FROM python:3.14.4-slim-bookworm@sha256:fc74d22ffd0d5ac395a4b7bdda75a4539758862c49ebf3005647084631e63789
+FROM python:3.14.7-slim-bookworm@sha256:9ab8d9c8514b44f90cf0029dd42fdd7e9e211e639c8b995304cc04568dee900f
 
 LABEL org.opencontainers.image.title="Bounded Systems Lab" \
     org.opencontainers.image.description="Bounded async work and production-minded platform examples" \
@@ -19,7 +19,8 @@ WORKDIR /app
 
 COPY requirements.lock ./requirements.lock
 RUN python -m pip install --no-cache-dir --require-hashes \
-    --requirement requirements.lock
+    --requirement requirements.lock \
+    && python -m pip uninstall --yes pip
 
 COPY src/bounded_systems_lab ./bounded_systems_lab
 
