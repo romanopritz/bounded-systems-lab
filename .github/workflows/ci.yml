@@ -121,7 +121,17 @@ jobs:
         run: |
           kubectl kustomize platform/kubernetes/base > "$RUNNER_TEMP/base.yaml"
           kubectl kustomize platform/kubernetes/overlays/ghcr > "$RUNNER_TEMP/ghcr.yaml"
-          kubeconform -strict -summary "$RUNNER_TEMP/base.yaml" "$RUNNER_TEMP/ghcr.yaml"
+          kubectl kustomize platform/kubernetes/overlays/gitops > "$RUNNER_TEMP/gitops.yaml"
+          kubectl kustomize platform/gitops/control-plane > "$RUNNER_TEMP/argocd-control-plane.yaml"
+          kubectl kustomize platform/gitops/application > "$RUNNER_TEMP/argocd-application.yaml"
+          kubeconform -strict -summary \
+            "$RUNNER_TEMP/base.yaml" \
+            "$RUNNER_TEMP/ghcr.yaml" \
+            "$RUNNER_TEMP/gitops.yaml"
+          kubeconform -strict -skip CustomResourceDefinition -summary \
+            "$RUNNER_TEMP/argocd-control-plane.yaml"
+          kubeconform -strict -ignore-missing-schemas -summary \
+            "$RUNNER_TEMP/argocd-application.yaml"
 
   container:
     runs-on: ubuntu-24.04
