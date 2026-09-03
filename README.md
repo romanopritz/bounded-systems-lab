@@ -82,12 +82,16 @@ uv run pytest -q
 
 Pull requests and pushes to `main` run the test suite and build the container
 without publishing it. Publishing a GitHub release builds the image, pushes it to
-`ghcr.io/romanopritz/bounded-systems-lab`, and records a build-provenance attestation. Workflow
-permissions are read-only by default; only the release job receives package and
-attestation write access.
+`ghcr.io/romanopritz/bounded-systems-lab`, and records a build-provenance
+attestation. Workflow permissions are read-only by default; only the release job
+receives package and attestation write access.
 
-New GHCR packages are private by default. After the first release, explicitly make
-the package public before configuring anonymous cluster pulls.
+The published image is public. Pull release `v0.1.0` by immutable digest:
+
+```bash
+docker pull \
+  ghcr.io/romanopritz/bounded-systems-lab@sha256:ebe9f897359cbe2aa5485b3ca2c49890a20ddb2cb8f344cdbaf6d8dde8621e24
+```
 
 ## Kubernetes
 
@@ -110,7 +114,12 @@ environment-specific and should be managed separately. Until a registry is
 configured, image builds and imports into K3s containerd remain operator actions.
 The local deployment uses `imagePullPolicy: Never` so a missing tag cannot fall
 back to an unintended public image; a registry deployment should use a verified
-digest.
+digest. The `platform/kubernetes/overlays/ghcr` overlay pins the public `v0.1.0`
+image by digest and changes the pull policy to `IfNotPresent`:
+
+```bash
+kubectl apply -k platform/kubernetes/overlays/ghcr
+```
 
 ## License
 

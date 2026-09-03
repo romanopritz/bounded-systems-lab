@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+images:
+  - name: bounded-systems-lab
+    newName: ghcr.io/romanopritz/bounded-systems-lab
+    digest: sha256:ebe9f897359cbe2aa5485b3ca2c49890a20ddb2cb8f344cdbaf6d8dde8621e24
+patches:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: bounded-systems-lab
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
