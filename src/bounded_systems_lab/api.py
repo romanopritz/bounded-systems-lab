@@ -12,7 +12,6 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 from fastapi import FastAPI, HTTPException, Request, Response
-from pydantic import BaseModel, Field
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
     CollectorRegistry,
@@ -21,6 +20,7 @@ from prometheus_client import (
     Histogram,
     generate_latest,
 )
+from pydantic import BaseModel, Field
 
 from bounded_systems_lab.overload import BoundedAsyncRunner, WorkRejected
 
@@ -119,7 +119,10 @@ def create_app(
     application.state.settings = service_settings
 
     @application.middleware("http")
-    async def request_context(request: Request, call_next):
+    async def request_context(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
         request_id = _request_id(request)
         request.state.request_id = request_id
         started = time.perf_counter()

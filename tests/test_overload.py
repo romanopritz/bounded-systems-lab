@@ -69,7 +69,10 @@ def test_timeout_releases_capacity() -> None:
             await runner.run(slow, timeout_seconds=0.01)
 
         assert (await runner.snapshot()).accepted == 0
-        assert await runner.run(lambda: asyncio.sleep(0, result="recovered")) == "recovered"
+        assert (
+            await runner.run(lambda: asyncio.sleep(0, result="recovered"))
+            == "recovered"
+        )
 
     asyncio.run(scenario())
 

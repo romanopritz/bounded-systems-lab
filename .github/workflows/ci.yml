@@ -14,6 +14,56 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.9"
+          python-version: "3.14"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install locked dependencies
+        run: uv sync --locked --dev
+
+      - name: Verify lock file
+        run: uv lock --check
+
+      - name: Check Python formatting and lint
+        run: |
+          uv run ruff format --check .
+          uv run ruff check .
+
+      - name: Check Python types
+        run: uv run mypy src tests
+
+      - name: Install actionlint
+        env:
+          ACTIONLINT_VERSION: "1.7.12"
+        run: |
+          set -euo pipefail
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          base_url="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}"
+          cd "$RUNNER_TEMP"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            --output "$archive" "$base_url/$archive"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            --output checksums.txt "$base_url/actionlint_${ACTIONLINT_VERSION}_checksums.txt"
+          grep "  $archive$" checksums.txt | sha256sum --check --strict -
+          tar --extract --gzip --file "$archive" actionlint
+          printf '%s\n' "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Check GitHub Actions workflows
+        run: actionlint
+
   test:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -37,6 +87,42 @@ jobs:
       - name: Run tests
         run: uv run pytest -q
 
+  manifests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@829323503d1be3d00ca8346e5391ca0b07a9ab0d # v5.1.0
+        with:
+          version: v1.36.4
+
+      - name: Install kubeconform
+        env:
+          KUBECONFORM_VERSION: "0.8.0"
+        run: |
+          set -euo pipefail
+          archive="kubeconform-linux-amd64.tar.gz"
+          base_url="https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}"
+          cd "$RUNNER_TEMP"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            --output "$archive" "$base_url/$archive"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            --output checksums.txt "$base_url/CHECKSUMS"
+          grep "  $archive$" checksums.txt | sha256sum --check --strict -
+          tar --extract --gzip --file "$archive" kubeconform
+          printf '%s\n' "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Render and validate Kubernetes manifests
+        run: |
+          kubectl kustomize platform/kubernetes/base > "$RUNNER_TEMP/base.yaml"
+          kubectl kustomize platform/kubernetes/overlays/ghcr > "$RUNNER_TEMP/ghcr.yaml"
+          kubeconform -strict -summary "$RUNNER_TEMP/base.yaml" "$RUNNER_TEMP/ghcr.yaml"
+
   container:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -53,4 +139,15 @@ jobs:
         uses: docker/build-push-action@2ca78c6bec76527009825f31aae0532b4d40d820 # v6
         with:
           context: .
+          load: true
           push: false
+          tags: bounded-systems-lab:ci
+
+      - name: Scan container
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: bounded-systems-lab:ci
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
