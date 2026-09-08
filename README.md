@@ -33,6 +33,7 @@ The project demonstrates:
 7. Added an operator-side SRE assistant with allowlisted tools and hard model budgets.
 8. Added a bounded overload and dependency-fault game-day harness.
 9. Added a plan-only ECS Fargate portability example with locked Terraform checks.
+10. Added encrypted, verified K3s SQLite recovery and upgrade procedures.
 
 ## Current Service
 
@@ -114,6 +115,15 @@ gated off by default; CI never applies infrastructure. The example intentionally
 omits EKS, a NAT gateway, and a load balancer, and documents the resulting
 availability, access, cost, state, and destruction tradeoffs. See
 [infrastructure/aws-poc/README.md](infrastructure/aws-poc/README.md).
+
+## Recovery
+
+The single-node K3s procedure creates an online SQLite snapshot, packages the
+required server token, certificate material, credentials, manifests, and host
+configuration, encrypts the archive, and verifies a disposable extraction before
+use. It also documents pinned upgrades and datastore-backed rollback. See
+[docs/k3s-recovery.md](docs/k3s-recovery.md). Backup archives and encryption keys
+must remain outside Git in separately protected locations.
 
 ## CI And Releases
 
