@@ -10,6 +10,7 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from prometheus_client import (
@@ -26,7 +27,17 @@ from bounded_systems_lab.overload import BoundedAsyncRunner, WorkRejected
 
 LOGGER = logging.getLogger("bounded_systems_lab.api")
 QUIET_PATHS = frozenset({"/healthz", "/readyz", "/metrics"})
-Workload = Callable[[int], Awaitable[str]]
+WorkScenario = Literal[
+    "normal",
+    "dependency_latency",
+    "dependency_failure",
+    "dependency_timeout",
+]
+Workload = Callable[[int, WorkScenario], Awaitable[str]]
+
+
+class SimulatedDependencyError(RuntimeError):
+    """A deliberately injected dependency failure for controlled game days."""
 
 
 @dataclass(frozen=True)
@@ -34,6 +45,7 @@ class ServiceSettings:
     max_concurrency: int = 2
     max_queue_size: int = 4
     work_timeout_seconds: float = 2.0
+    enable_fault_injection: bool = False
 
     @classmethod
     def from_env(cls) -> ServiceSettings:
@@ -43,11 +55,13 @@ class ServiceSettings:
             work_timeout_seconds=_read_float(
                 "LAB_WORK_TIMEOUT_SECONDS", 2.0, minimum=0.001
             ),
+            enable_fault_injection=_read_bool("LAB_ENABLE_FAULT_INJECTION", False),
         )
 
 
 class WorkRequest(BaseModel):
     duration_ms: int = Field(default=250, ge=0, le=5_000)
+    scenario: WorkScenario = "normal"
 
 
 class WorkResponse(BaseModel):
@@ -94,8 +108,15 @@ class ServiceMetrics:
         self.duration.labels(outcome=outcome).observe(duration_seconds)
 
 
-async def simulated_work(duration_ms: int) -> str:
+async def simulated_work(duration_ms: int, scenario: WorkScenario) -> str:
+    if scenario == "dependency_failure":
+        raise SimulatedDependencyError("simulated dependency failure")
+    if scenario == "dependency_timeout":
+        await asyncio.sleep(5)
+        return "simulated-dependency-timeout-complete"
     await asyncio.sleep(duration_ms / 1_000)
+    if scenario == "dependency_latency":
+        return "simulated-dependency-latency-complete"
     return "simulated-work-complete"
 
 
@@ -180,11 +201,16 @@ def create_app(
 
     @application.post("/v1/work", response_model=WorkResponse)
     async def work(payload: WorkRequest, request: Request) -> WorkResponse:
+        if payload.scenario != "normal" and not service_settings.enable_fault_injection:
+            raise HTTPException(
+                status_code=403,
+                detail="fault injection is disabled",
+            )
         started = time.perf_counter()
         outcome = "failed"
         try:
             result = await runner.run(
-                lambda: execute(payload.duration_ms),
+                lambda: execute(payload.duration_ms, payload.scenario),
                 timeout_seconds=service_settings.work_timeout_seconds,
             )
             outcome = "completed"
@@ -199,6 +225,10 @@ def create_app(
             outcome = "timed_out"
             raise HTTPException(
                 status_code=504, detail="work deadline exceeded"
+            ) from exc
+        except SimulatedDependencyError as exc:
+            raise HTTPException(
+                status_code=502, detail="simulated dependency failure"
             ) from exc
         finally:
             metrics.observe(outcome, time.perf_counter() - started)
@@ -244,6 +274,18 @@ def _read_float(name: str, default: float, *, minimum: float) -> float:
     if value < minimum:
         raise ValueError(f"{name} must be at least {minimum}")
     return value
+
+
+def _read_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes"}:
+        return True
+    if normalized in {"0", "false", "no"}:
+        return False
+    raise ValueError(f"{name} must be a boolean")
 
 
 if not LOGGER.handlers:

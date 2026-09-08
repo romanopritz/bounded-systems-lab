@@ -1,0 +1,12 @@
+{
+  "controlled_drift_observed": true,
+  "gitops_healthy": true,
+  "gitops_rollback_verified": true,
+  "gitops_synced": true,
+  "pod_restarts_after": 0,
+  "pod_restarts_before": 0,
+  "recovery_verified": true,
+  "rejection_alert_cleared": true,
+  "rejection_alert_observed": true,
+  "schema_version": 1
+}
