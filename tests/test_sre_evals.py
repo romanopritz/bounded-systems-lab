@@ -38,7 +38,9 @@ def test_deterministic_sre_cases_and_injection_boundary() -> None:
     async def scenario(case: dict[str, Any]) -> None:
         responses = []
         for step in case["steps"]:
-            calls = tuple(ToolCall.model_validate(call) for call in step.get("tool_calls", []))
+            calls = tuple(
+                ToolCall.model_validate(call) for call in step.get("tool_calls", [])
+            )
             responses.append(
                 ModelResponse(content=step.get("content", ""), tool_calls=calls)
             )

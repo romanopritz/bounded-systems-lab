@@ -34,7 +34,11 @@ class _StatusTool:
         return ToolSpec(
             name="service_status",
             description="Read status.",
-            parameters={"type": "object", "properties": {}, "additionalProperties": False},
+            parameters={
+                "type": "object",
+                "properties": {},
+                "additionalProperties": False,
+            },
         )
 
     async def invoke(self, arguments: dict[str, Any]) -> BaseModel:
@@ -144,9 +148,7 @@ def test_unknown_tool_is_rejected_and_never_invoked() -> None:
 
         assert result.stats.rejected_tool_calls == 1
         assert "not allowlisted" in provider.requests[1].messages[-1].content
-        assert {tool.name for tool in provider.requests[0].tools} == {
-            "service_status"
-        }
+        assert {tool.name for tool in provider.requests[0].tools} == {"service_status"}
 
     asyncio.run(scenario())
 

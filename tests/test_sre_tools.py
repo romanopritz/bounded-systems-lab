@@ -77,7 +77,9 @@ def test_active_alerts_tool_returns_only_bounded_fields() -> None:
                                         "severity": "warning",
                                         "pod": "internal-pod-name",
                                     },
-                                    "annotations": {"summary": "Capacity is constrained"},
+                                    "annotations": {
+                                        "summary": "Capacity is constrained"
+                                    },
                                     "state": "firing",
                                     "value": "private detail",
                                 }

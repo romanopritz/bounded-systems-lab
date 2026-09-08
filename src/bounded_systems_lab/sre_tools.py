@@ -183,9 +183,7 @@ def build_read_only_tools(
     )
 
 
-def _validate_arguments[T: BaseModel](
-    model: type[T], arguments: dict[str, Any]
-) -> T:
+def _validate_arguments[T: BaseModel](model: type[T], arguments: dict[str, Any]) -> T:
     try:
         return model.model_validate(arguments)
     except ValidationError as exc:

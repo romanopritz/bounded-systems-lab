@@ -9,7 +9,13 @@ from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, generate_latest
+from prometheus_client import (
+    CollectorRegistry,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
 from pydantic import BaseModel, ConfigDict, Field
 
 from bounded_systems_lab.overload import BoundedAsyncRunner, WorkRejected
@@ -234,7 +240,9 @@ class SreAssistant:
                     if not answer:
                         raise AssistantLimitExceeded("model returned an empty answer")
                     if len(answer) > self._limits.max_answer_chars:
-                        raise AssistantLimitExceeded("answer exceeded the character budget")
+                        raise AssistantLimitExceeded(
+                            "answer exceeded the character budget"
+                        )
                     return AssistantResult(
                         answer=answer,
                         stats=_freeze_stats(stats, time.perf_counter() - started),
@@ -275,7 +283,9 @@ class SreAssistant:
                 response = await self._provider.complete(request)
             except ProviderError as exc:
                 category = (
-                    exc.category if exc.category in SAFE_PROVIDER_CATEGORIES else "other"
+                    exc.category
+                    if exc.category in SAFE_PROVIDER_CATEGORIES
+                    else "other"
                 )
                 self.metrics.model_calls.labels(outcome=category).inc()
                 self.metrics.model_duration.labels(outcome=category).observe(
@@ -328,13 +338,13 @@ class SreAssistant:
             result = await tool.invoke(arguments)
             serialized = result.model_dump_json()
             if len(serialized) > self._limits.max_tool_result_chars:
-                raise AssistantLimitExceeded("tool result exceeded the character budget")
+                raise AssistantLimitExceeded(
+                    "tool result exceeded the character budget"
+                )
             outcome = "completed"
             return serialized
         except ToolError as exc:
-            return json.dumps(
-                {"error": str(exc)[:500]}, separators=(",", ":")
-            )
+            return json.dumps({"error": str(exc)[:500]}, separators=(",", ":"))
         finally:
             duration = time.perf_counter() - started
             self.metrics.tool_calls.labels(tool=name, outcome=outcome).inc()

@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
-import sys
 from pathlib import Path
 from typing import Literal, cast
 
@@ -86,7 +85,7 @@ async def _run(question: str, metrics_file: Path | None) -> str:
             await provider.aclose()
 
     if metrics_file is not None:
-        metrics_file.write_bytes(assistant.metrics.render())
+        await asyncio.to_thread(metrics_file.write_bytes, assistant.metrics.render())
     return result.model_dump_json(indent=2)
 
 
@@ -98,4 +97,4 @@ def _required_env(name: str) -> str:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

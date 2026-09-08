@@ -149,7 +149,9 @@ class OpenAICompatibleProvider(ModelProvider):
         try:
             wire = _WireResponse.model_validate(response.json())
             choice = wire.choices[0]
-            tool_calls = tuple(_parse_tool_call(call) for call in choice.message.tool_calls)
+            tool_calls = tuple(
+                _parse_tool_call(call) for call in choice.message.tool_calls
+            )
         except (ValidationError, ValueError, json.JSONDecodeError) as exc:
             raise ProviderError(
                 "model provider returned an invalid response",
