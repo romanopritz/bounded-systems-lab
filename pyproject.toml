@@ -13,6 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
+bounded-load = "bounded_systems_lab.loadgen:main"
 bounded-sre = "bounded_systems_lab.sre_cli:main"
 
 [project.urls]

@@ -37,7 +37,7 @@ def test_health_readiness_work_and_metrics() -> None:
 
 def test_unexpected_workload_error_is_counted_as_failed() -> None:
     async def scenario() -> None:
-        async def broken(_: int) -> str:
+        async def broken(_: int, _scenario: str) -> str:
             raise RuntimeError("simulated dependency failure")
 
         app = create_app(ServiceSettings(), workload=broken)
@@ -57,7 +57,7 @@ def test_rejects_work_when_running_and_queue_capacity_are_full() -> None:
     async def scenario() -> None:
         release = asyncio.Event()
 
-        async def blocked(_: int) -> str:
+        async def blocked(_: int, _scenario: str) -> str:
             await release.wait()
             return "released"
 
@@ -100,7 +100,7 @@ def test_rejects_work_when_running_and_queue_capacity_are_full() -> None:
 
 def test_times_out_work_and_releases_capacity() -> None:
     async def scenario() -> None:
-        async def slow(_: int) -> str:
+        async def slow(_: int, _scenario: str) -> str:
             await asyncio.sleep(1)
             return "too-late"
 
@@ -123,5 +123,57 @@ def test_times_out_work_and_releases_capacity() -> None:
         assert status.json()["accepted"] == 0
         assert status.json()["running"] == 0
         assert 'bounded_work_requests_total{outcome="timed_out"} 1.0' in metrics.text
+
+    asyncio.run(scenario())
+
+
+def test_fault_injection_is_disabled_by_default() -> None:
+    async def scenario() -> None:
+        app = create_app(ServiceSettings())
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.post(
+                "/v1/work",
+                json={"scenario": "dependency_failure", "duration_ms": 0},
+            )
+
+        assert response.status_code == 403
+        assert response.json() == {"detail": "fault injection is disabled"}
+
+    asyncio.run(scenario())
+
+
+def test_fault_injection_exposes_failure_and_timeout_outcomes() -> None:
+    async def scenario() -> None:
+        app = create_app(
+            ServiceSettings(
+                work_timeout_seconds=0.01,
+                enable_fault_injection=True,
+            )
+        )
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            failed = await client.post(
+                "/v1/work",
+                json={"scenario": "dependency_failure", "duration_ms": 0},
+            )
+            timed_out = await client.post(
+                "/v1/work",
+                json={"scenario": "dependency_timeout", "duration_ms": 0},
+            )
+            recovered = await client.post(
+                "/v1/work",
+                json={"scenario": "normal", "duration_ms": 0},
+            )
+            metrics = await client.get("/metrics")
+
+        assert failed.status_code == 502
+        assert timed_out.status_code == 504
+        assert recovered.status_code == 200
+        assert 'bounded_work_requests_total{outcome="failed"} 1.0' in metrics.text
+        assert 'bounded_work_requests_total{outcome="timed_out"} 1.0' in metrics.text
+        assert 'bounded_work_requests_total{outcome="completed"} 1.0' in metrics.text
 
     asyncio.run(scenario())

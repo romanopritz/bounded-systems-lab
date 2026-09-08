@@ -31,6 +31,7 @@ The project demonstrates:
 5. Added namespace-scoped Argo CD reconciliation with bounded control-plane resources.
 6. Added bounded Prometheus, Alertmanager, and Grafana resources with tested SLO rules.
 7. Added an operator-side SRE assistant with allowlisted tools and hard model budgets.
+8. Added a bounded overload and dependency-fault game-day harness.
 
 ## Current Service
 
@@ -94,6 +95,15 @@ The CLI stays outside Kubernetes so model credentials and cluster credentials do
 not share a trust boundary. See
 [docs/ai-sre-assistant.md](docs/ai-sre-assistant.md) for local-only access,
 runtime credential injection, metrics, and the deterministic evaluation suite.
+
+## Game Day
+
+The `bounded-load` CLI uses a fixed worker pool and request ceiling to exercise
+intentional `503` rejection, dependency latency, failure, and timeout behavior.
+Fault scenarios are disabled by default in the service and are intended for a
+private disposable container. See [docs/game-day.md](docs/game-day.md) for the
+containerized procedure, alert and recovery checks, anonymized JSON evidence,
+and GitOps reconciliation exercise.
 
 ## CI And Releases
 
