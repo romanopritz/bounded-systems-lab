@@ -11,6 +11,10 @@ readonly ALERT_TIMEOUT_SECONDS="${ALERT_TIMEOUT_SECONDS:-600}"
 readonly SERVICE_PORT="18000"
 readonly PROMETHEUS_PORT="19090"
 
+if [[ -z "${KUBECONFIG:-}" && -r /etc/rancher/k3s/k3s.yaml ]]; then
+  export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+fi
+
 if ((REQUESTS < 1 || REQUESTS > 10000)); then
   printf 'REQUESTS must be between 1 and 10000\n' >&2
   exit 2
