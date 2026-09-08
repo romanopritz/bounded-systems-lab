@@ -32,6 +32,7 @@ The project demonstrates:
 6. Added bounded Prometheus, Alertmanager, and Grafana resources with tested SLO rules.
 7. Added an operator-side SRE assistant with allowlisted tools and hard model budgets.
 8. Added a bounded overload and dependency-fault game-day harness.
+9. Added a plan-only ECS Fargate portability example with locked Terraform checks.
 
 ## Current Service
 
@@ -104,6 +105,15 @@ Fault scenarios are disabled by default in the service and are intended for a
 private disposable container. See [docs/game-day.md](docs/game-day.md) for the
 containerized procedure, alert and recovery checks, anonymized JSON evidence,
 and GitOps reconciliation exercise.
+
+## AWS Portability
+
+`infrastructure/aws-poc` maps the same digest-pinned image and overload settings
+to a minimal ECS Fargate service. Resource creation and task count are separately
+gated off by default; CI never applies infrastructure. The example intentionally
+omits EKS, a NAT gateway, and a load balancer, and documents the resulting
+availability, access, cost, state, and destruction tradeoffs. See
+[infrastructure/aws-poc/README.md](infrastructure/aws-poc/README.md).
 
 ## CI And Releases
 

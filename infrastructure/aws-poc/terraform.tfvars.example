@@ -1,0 +1,8 @@
+# Resource creation is gated twice: enable the deployment, then choose task count.
+enable_deployment = true
+desired_count     = 1
+
+aws_region = "eu-central-1"
+
+# Keep empty for default-deny ingress. Add only a known VPN or operator CIDR.
+allowed_ingress_cidrs = []
