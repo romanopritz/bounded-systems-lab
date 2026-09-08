@@ -88,3 +88,33 @@ tests:
               summary: Work runner is persistently saturated
               description: At least 80% of running and queue capacity has been occupied for ten minutes.
               runbook_url: https://github.com/romanopritz/bounded-systems-lab/blob/main/docs/observability.md#sustained-saturation
+  - name: sustained rejection rate warns
+    interval: 1m
+    input_series:
+      - series: bounded_work_requests_total{outcome="rejected"}
+        values: 0+12x20
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: BoundedLabHighRejectionRate
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Work admission rejection rate is high
+              description: More than 5% of work has been rejected for five minutes; inspect queue saturation before adding load or capacity.
+              runbook_url: https://github.com/romanopritz/bounded-systems-lab/blob/main/docs/observability.md#high-rejection-rate
+  - name: sustained failures page
+    interval: 1m
+    input_series:
+      - series: bounded_work_requests_total{outcome="failed"}
+        values: 0+12x20
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: BoundedLabErrorFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Work failure error budget is burning quickly
+              description: Failures and timeouts exceed the fast-burn threshold while the service is receiving traffic.
+              runbook_url: https://github.com/romanopritz/bounded-systems-lab/blob/main/docs/observability.md#error-burn
