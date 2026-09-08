@@ -38,7 +38,7 @@ of zero. Enabling the deployment still defaults `desired_count` to zero, so
 Fargate compute requires two explicit choices.
 
 CI performs only formatting, provider initialization without a backend,
-validation, TFLint, and Trivy configuration scanning. Terraform 1.15.6, AWS
+validation, TFLint, and Trivy configuration scanning. Terraform 1.16.1, AWS
 provider 6.62.0, TFLint 0.64.0, and the provider lock file are pinned.
 
 ## Review A Plan
