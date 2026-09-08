@@ -7,9 +7,13 @@ license = "Apache-2.0"
 requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.118.0",
+    "httpx>=0.28.0",
     "prometheus-client>=0.23.0",
     "uvicorn>=0.37.0",
 ]
+
+[project.scripts]
+bounded-sre = "bounded_systems_lab.sre_cli:main"
 
 [project.urls]
 Repository = "https://github.com/romanopritz/bounded-systems-lab"
@@ -20,7 +24,6 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.0",
     "mypy>=1.18.0,<2",
     "pytest>=8.4.0",
     "ruff>=0.13.0,<1",

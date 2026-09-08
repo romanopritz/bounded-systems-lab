@@ -12,6 +12,7 @@ The project demonstrates:
 - Prometheus metrics for outcomes, latency, saturation, and queue depth;
 - a reproducible, non-root container;
 - restricted Kubernetes workloads with quotas and default-deny networking;
+- a budgeted, read-only AI SRE assistant with deterministic injection evaluations;
 - operational controls suitable for fixed-capacity environments.
 
 ## Reference Environment
@@ -29,6 +30,7 @@ The project demonstrates:
 4. Deployed two restricted replicas to K3s with probes, quotas, and network policies.
 5. Added namespace-scoped Argo CD reconciliation with bounded control-plane resources.
 6. Added bounded Prometheus, Alertmanager, and Grafana resources with tested SLO rules.
+7. Added an operator-side SRE assistant with allowlisted tools and hard model budgets.
 
 ## Current Service
 
@@ -79,6 +81,19 @@ Run the tests with:
 ```bash
 uv run pytest -q
 ```
+
+## AI SRE Assistant
+
+The optional `bounded-sre` CLI uses an OpenAI-compatible Chat Completions endpoint
+to interpret only three typed, read-only tools: service capacity, allowlisted SLO
+indicators, and sanitized active alerts. It has explicit concurrency, queue,
+retry, token, tool-call, context, response-size, iteration, and wall-time limits.
+It receives no shell, Kubernetes, arbitrary HTTP, or raw PromQL capability.
+
+The CLI stays outside Kubernetes so model credentials and cluster credentials do
+not share a trust boundary. See
+[docs/ai-sre-assistant.md](docs/ai-sre-assistant.md) for local-only access,
+runtime credential injection, metrics, and the deterministic evaluation suite.
 
 ## CI And Releases
 
